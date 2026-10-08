@@ -39,26 +39,6 @@ jobs:
           exit 1
         fi
 
-    - name: Root Cause Analysis (Deep Inspection)
-      run: |
-        python3 -c "
-        import os
-
-        print('=== ROOT CAUSE ANALYSIS: SEARCHING FOR 1.8 ===')
-        for root, dirs, files in os.walk('.'):
-            if '.gradle' in root or 'build' in root or '.git' in root:
-                continue
-            for file in files:
-                if file.endswith('.gradle.kts') or file.endswith('.gradle') or file.endswith('properties'):
-                    path = os.path.join(root, file)
-                    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                        lines = f.readlines()
-                    for idx, line in enumerate(lines):
-                        if '1.8' in line or 'VERSION_1_8' in line or 'jvmTarget' in line or 'compatibility' in line:
-                            print(f'Found in {path} (Line {idx+1}): {line.strip()}')
-        print('=============================================')
-        "
-
     - name: Generate Gradle Wrapper 8.9
       run: |
         gradle wrapper --gradle-version 8.9
