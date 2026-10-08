@@ -30,7 +30,6 @@ jobs:
           exit 1
         fi
         
-        # پیدا کردن پوشه اصلی پروژه bitamonitor
         PROJ_DIR=$(find temp_extracted -maxdepth 3 -name "settings.gradle.kts" -exec dirname {} \;)
         if [ -n "$PROJ_DIR" ]; then
           echo "Found project at: $PROJ_DIR"
@@ -40,9 +39,9 @@ jobs:
           exit 1
         fi
 
-    - name: Generate Gradle Wrapper
+    - name: Generate Gradle Wrapper 8.9
       run: |
-        gradle wrapper --gradle-version 8.2
+        gradle wrapper --gradle-version 8.9
         chmod +x gradlew
 
     - name: Build Debug APK
