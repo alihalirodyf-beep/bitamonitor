@@ -39,64 +39,65 @@ jobs:
           exit 1
         fi
 
-    - name: Automatically Rewrite app/build.gradle.kts to Java 17
+    - name: Create Python Fix Script
       run: |
-        python3 -c "
+        cat << 'EOF' > fix_build.py
         import os
 
-        gradle_path = 'app/build.gradle.kts'
+        gradle_path = "app/build.gradle.kts"
         if os.path.exists(gradle_path):
-            new_content = '''
-plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-}
-
-android {
-    namespace = \"com.bitamonitor.app\"
-    compileSdk = 34
-
-    defaultConfig {
-        applicationId = \"com.bitamonitor.app\"
-        minSdk = 24
-        targetSdk = 34
-        versionCode = 1
-        versionName = \"1.0\"
-
-        testInstrumentationRunner = \"androidx.test.runner.AndroidJUnitRunner\"
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile(\"proguard-android-optimize.txt\"),
-                \"proguard-rules.pro\"
-            )
+            content = """
+        plugins {
+            alias(libs.plugins.android.application)
+            alias(libs.plugins.kotlin.android)
         }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = \"17\"
-    }
-}
 
-dependencies {
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-}
-'''
-            with open(gradle_path, 'w', encoding='utf-8') as f:
-                f.write(new_content.strip())
-            print('app/build.gradle.kts successfully overwritten with Java 17!')
-        "
+        android {
+            namespace = "com.bitamonitor.app"
+            compileSdk = 34
+
+            defaultConfig {
+                applicationId = "com.bitamonitor.app"
+                minSdk = 24
+                targetSdk = 34
+                versionCode = 1
+                versionName = "1.0"
+
+                testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+            }
+
+            buildTypes {
+                release {
+                    isMinifyEnabled = false
+                    proguardFiles(
+                        getDefaultProguardFile("proguard-android-optimize.txt"),
+                        "proguard-rules.pro"
+                    )
+                }
+            }
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+        }
+
+        dependencies {
+            implementation(libs.androidx.core.ktx)
+            implementation(libs.androidx.appcompat)
+            implementation(libs.material)
+            testImplementation(libs.junit)
+            androidTestImplementation(libs.androidx.junit)
+            androidTestImplementation(libs.androidx.espresso.core)
+        }
+        """
+            with open(gradle_path, "w", encoding="utf-8") as f:
+                f.write(content.strip())
+            print("Successfully updated app/build.gradle.kts to Java 17")
+        EOF
+        python3 fix_build.py
 
     - name: Generate Gradle Wrapper 8.9
       run: |
