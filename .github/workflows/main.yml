@@ -39,26 +39,36 @@ jobs:
           exit 1
         fi
 
-    - name: Ultimate JVM 17 Force Override
+    - name: Global Deep Clean and Force Java 17 in ALL Gradle Files
       run: |
         python3 -c "
         import os
 
+        print('Scanning all project files for Java/Kotlin version mismatches...')
         for root, dirs, files in os.walk('.'):
+            # رد شدن از پوشه‌های بیلد و گریدل برای سرعت بیشتر
+            if '.gradle' in root or 'build' in root or '.git' in root:
+                continue
             for file in files:
-                if file.endswith('.gradle.kts') or file.endswith('.gradle'):
+                if file.endswith('.gradle.kts') or file.endswith('.gradle') or file.endswith('.properties'):
                     path = os.path.join(root, file)
-                    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-                    
-                    # جایگزینی همه‌جانبه تمام نسخه‌های قدیمی جاوا و کاتلین به 17
-                    content = content.replace('VERSION_1_8', 'VERSION_17')
-                    content = content.replace('1.8', '17')
-                    content = content.replace('VERSION_1_6', 'VERSION_17')
-                    
-                    with open(path, 'w', encoding='utf-8') as f:
-                        f.write(content)
-                    print(f'Patched: {path}')
+                    try:
+                        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                        
+                        original = content
+                        # جایگزینی ریشه‌ای تمام نسخه‌های قدیمی جاوا به 17
+                        content = content.replace('VERSION_1_8', 'VERSION_17')
+                        content = content.replace('1.8', '17')
+                        content = content.replace('1.6', '17')
+                        content = content.replace('javaVersion = JavaVersion.VERSION_1_8', 'javaVersion = JavaVersion.VERSION_17')
+                        
+                        if content != original:
+                            with open(path, 'w', encoding='utf-8') as f:
+                                f.write(content)
+                            print(f'Successfully updated: {path}')
+                    except Exception as e:
+                        print(f'Skipped {path}: {e}')
         "
 
     - name: Generate Gradle Wrapper 8.9
