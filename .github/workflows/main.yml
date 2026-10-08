@@ -39,31 +39,26 @@ jobs:
           exit 1
         fi
 
-    - name: Safely Fix Java and Kotlin Compatibility in Gradle
+    - name: Ultimate JVM 17 Force Override
       run: |
         python3 -c "
-        import os, re
+        import os
 
-        gradle_path = 'app/build.gradle.kts'
-        if os.path.exists(gradle_path):
-            with open(gradle_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            # تغییر نسخه‌های جاوا از 1.8 به 17
-            content = content.replace('VERSION_1_8', 'VERSION_17')
-            
-            # تنظیم دقیق jvmTarget روی 17 برای کاتلین
-            content = re.sub(r'jvmTarget\s*=\s*[\"\\'].*?[\"\\']', 'jvmTarget = \"17\"', content)
-            
-            # اگر jvmTarget وجود نداشت، داخل kotlinOptions اضافه می‌کنیم
-            if 'jvmTarget' not in content and 'kotlinOptions' in content:
-                content = content.replace('kotlinOptions {', 'kotlinOptions {\n        jvmTarget = \"17\"')
-
-            with open(gradle_path, 'w', encoding='utf-8') as f:
-                f.write(content)
-            print('Successfully updated app/build.gradle.kts to Java/Kotlin 17')
-        else:
-            print('Error: app/build.gradle.kts not found!')
+        for root, dirs, files in os.walk('.'):
+            for file in files:
+                if file.endswith('.gradle.kts') or file.endswith('.gradle'):
+                    path = os.path.join(root, file)
+                    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                    
+                    # جایگزینی همه‌جانبه تمام نسخه‌های قدیمی جاوا و کاتلین به 17
+                    content = content.replace('VERSION_1_8', 'VERSION_17')
+                    content = content.replace('1.8', '17')
+                    content = content.replace('VERSION_1_6', 'VERSION_17')
+                    
+                    with open(path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    print(f'Patched: {path}')
         "
 
     - name: Generate Gradle Wrapper 8.9
