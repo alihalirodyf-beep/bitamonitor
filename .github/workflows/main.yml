@@ -39,65 +39,32 @@ jobs:
           exit 1
         fi
 
-    - name: Create Python Fix Script
+    - name: Safely Fix Java and Kotlin Compatibility in Gradle
       run: |
-        cat << 'EOF' > fix_build.py
-        import os
+        python3 -c "
+        import os, re
 
-        gradle_path = "app/build.gradle.kts"
+        gradle_path = 'app/build.gradle.kts'
         if os.path.exists(gradle_path):
-            content = """
-        plugins {
-            alias(libs.plugins.android.application)
-            alias(libs.plugins.kotlin.android)
-        }
+            with open(gradle_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # تغییر نسخه‌های جاوا از 1.8 به 17
+            content = content.replace('VERSION_1_8', 'VERSION_17')
+            
+            # تنظیم دقیق jvmTarget روی 17 برای کاتلین
+            content = re.sub(r'jvmTarget\s*=\s*[\"\\'].*?[\"\\']', 'jvmTarget = \"17\"', content)
+            
+            # اگر jvmTarget وجود نداشت، داخل kotlinOptions اضافه می‌کنیم
+            if 'jvmTarget' not in content and 'kotlinOptions' in content:
+                content = content.replace('kotlinOptions {', 'kotlinOptions {\n        jvmTarget = \"17\"')
 
-        android {
-            namespace = "com.bitamonitor.app"
-            compileSdk = 34
-
-            defaultConfig {
-                applicationId = "com.bitamonitor.app"
-                minSdk = 24
-                targetSdk = 34
-                versionCode = 1
-                versionName = "1.0"
-
-                testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-            }
-
-            buildTypes {
-                release {
-                    isMinifyEnabled = false
-                    proguardFiles(
-                        getDefaultProguardFile("proguard-android-optimize.txt"),
-                        "proguard-rules.pro"
-                    )
-                }
-            }
-            compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
-            }
-            kotlinOptions {
-                jvmTarget = "17"
-            }
-        }
-
-        dependencies {
-            implementation(libs.androidx.core.ktx)
-            implementation(libs.androidx.appcompat)
-            implementation(libs.material)
-            testImplementation(libs.junit)
-            androidTestImplementation(libs.androidx.junit)
-            androidTestImplementation(libs.androidx.espresso.core)
-        }
-        """
-            with open(gradle_path, "w", encoding="utf-8") as f:
-                f.write(content.strip())
-            print("Successfully updated app/build.gradle.kts to Java 17")
-        EOF
-        python3 fix_build.py
+            with open(gradle_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            print('Successfully updated app/build.gradle.kts to Java/Kotlin 17')
+        else:
+            print('Error: app/build.gradle.kts not found!')
+        "
 
     - name: Generate Gradle Wrapper 8.9
       run: |
