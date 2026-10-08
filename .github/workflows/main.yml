@@ -19,15 +19,15 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Unzip project files
+    - name: Find and Unzip Project
       run: |
-        mkdir -p temp_extracted
-        if [ -f "BitaBarMonitor__v3.zip" ]; then
-          unzip -o -q BitaBarMonitor__v3.zip -d temp_extracted
-        elif [ -f "BitaBarMonitor_v3.zip" ]; then
-          unzip -o -q BitaBarMonitor_v3.zip -d temp_extracted
+        ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
+        if [ -n "$ZIP_FILE" ]; then
+          echo "Found zip file: $ZIP_FILE"
+          mkdir -p temp_extracted
+          unzip -o -q "$ZIP_FILE" -d temp_extracted
         else
-          echo "Zip file not found!"
+          echo "No zip file found in repository!"
           exit 1
         fi
         
@@ -36,7 +36,7 @@ jobs:
           PROJECT_DIR=$(dirname "$GRADLEW_PATH")
           cp -r "$PROJECT_DIR"/* .
         else
-          echo "gradlew not found in zip!"
+          echo "gradlew not found inside zip!"
           exit 1
         fi
 
