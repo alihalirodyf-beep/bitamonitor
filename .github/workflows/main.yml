@@ -39,16 +39,64 @@ jobs:
           exit 1
         fi
 
-    - name: Force JDK 17 Toolchain & Target Uniformity
+    - name: Automatically Rewrite app/build.gradle.kts to Java 17
       run: |
-        # افزودن تنظیمات یکپارچه‌سازی جاوا و کاتلین به gradle.properties
-        echo "org.gradle.java.installations.auto-detect=false" >> gradle.properties
-        echo "org.gradle.java.installations.fromEnv=JAVA_HOME" >> gradle.properties
-        
-        # جایگزینی اجباری JavaVersion.VERSION_1_8 در تمام فایل‌های kts پروژه
-        find . -name "*.gradle.kts" -type f -exec sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' {} +
-        find . -name "*.gradle.kts" -type f -exec sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' {} +
-        find . -name "*.gradle.kts" -type f -exec sed -i 's/jvmTarget = "11"/jvmTarget = "17"/g' {} +
+        python3 -c "
+        import os
+
+        gradle_path = 'app/build.gradle.kts'
+        if os.path.exists(gradle_path):
+            new_content = '''
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+}
+
+android {
+    namespace = \"com.bitamonitor.app\"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = \"com.bitamonitor.app\"
+        minSdk = 24
+        targetSdk = 34
+        versionCode = 1
+        versionName = \"1.0\"
+
+        testInstrumentationRunner = \"androidx.test.runner.AndroidJUnitRunner\"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile(\"proguard-android-optimize.txt\"),
+                \"proguard-rules.pro\"
+            )
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = \"17\"
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+}
+'''
+            with open(gradle_path, 'w', encoding='utf-8') as f:
+                f.write(new_content.strip())
+            print('app/build.gradle.kts successfully overwritten with Java 17!')
+        "
 
     - name: Generate Gradle Wrapper 8.9
       run: |
@@ -56,7 +104,7 @@ jobs:
         chmod +x gradlew
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug -Pkotlin.compiler.jvmTarget=17 --stacktrace
+      run: ./gradlew assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
