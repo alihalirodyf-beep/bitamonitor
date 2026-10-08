@@ -13,46 +13,40 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up JDK 11
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
-        java-version: '11'
+        java-version: '17'
         distribution: 'temurin'
 
-    - name: Find and Unzip Project
+    - name: Extract Zip and Structure Project
       run: |
         ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
         if [ -n "$ZIP_FILE" ]; then
-          echo "Found zip file: $ZIP_FILE"
-          mkdir -p temp_extracted
+          echo "Unzipping $ZIP_FILE..."
           unzip -o -q "$ZIP_FILE" -d temp_extracted
         else
-          echo "No zip file found in repository!"
+          echo "No zip file found!"
           exit 1
         fi
         
-        SETTINGS_PATH=$(find temp_extracted -name "settings.gradle*" | head -n 1)
-        if [ -n "$SETTINGS_PATH" ]; then
-          PROJECT_DIR=$(dirname "$SETTINGS_PATH")
+        # پیدا کردن پوشه اصلی پروژه bitamonitor
+        PROJ_DIR=$(find temp_extracted -maxdepth 3 -name "settings.gradle.kts" -exec dirname {} \;)
+        if [ -n "$PROJ_DIR" ]; then
+          echo "Found project at: $PROJ_DIR"
+          cp -r "$PROJ_DIR"/* .
         else
-          BUILD_PATH=$(find temp_extracted -name "build.gradle*" | head -n 1)
-          PROJECT_DIR=$(dirname "$BUILD_PATH")
-        fi
-        
-        if [ -n "$PROJECT_DIR" ]; then
-          cp -r "$PROJECT_DIR"/* .
-        else
-          echo "No Android project found inside zip!"
+          echo "settings.gradle.kts not found!"
           exit 1
         fi
 
-    - name: Setup Gradle 7.5
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: '7.5'
+    - name: Generate Gradle Wrapper
+      run: |
+        gradle wrapper --gradle-version 8.2
+        chmod +x gradlew
 
-    - name: Build APK
-      run: gradle assembleDebug --stacktrace
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --stacktrace
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
